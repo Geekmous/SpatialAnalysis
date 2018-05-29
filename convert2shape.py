@@ -1,5 +1,12 @@
-import arcpy
 import os
+ARCPY = False
+try:
+    import arcpy
+    ARCPY = True
+except:
+    print ("it seems that modual arcpy not exisits")
+
+
 def others():
     fc = "./test.shp"
     try:

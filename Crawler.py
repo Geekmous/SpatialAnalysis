@@ -1,13 +1,18 @@
 #encoding: utf-8
 import urllib
-
 import urllib2
 import json 
-import arcpy
+import time
 import sqlite3
 import os
 
-ak = "Your Baidu ak"
+try:
+    import arcpy
+except:
+    pass
+    
+
+ak = "your ak"
 
 DATABASEPATH = "temp.db"
 
@@ -16,7 +21,7 @@ def InitDatabase():
         os.remove(DATABASEPATH)
     connect = sqlite3.connect(DATABASEPATH)
 
-    connect.execute("CREATE TABLE poi(uid text primary key, name text, lat double, lng double)")
+    connect.execute("CREATE TABLE poi(uid text primary key, name text, lat double, lng double, rank double)")
     connect.execute("CREATE TABLE boundary(uid text, lat double, lng double, orders integer, primary key (lat, lng, orders))")
     sql = "CREATE TABLE busline(busuid text primary key, name text)"
     connect.execute(sql)
@@ -67,9 +72,10 @@ def getHttp( url ):
     ret = respon.read()
     ret = ret.decode('utf-8')
     return ret
+
 def getBusUid( name ):
     url = "http://map.baidu.com/?newmap=1&reqflag=pcmap&biz=1&from=webmap&da_par=direct&pcevaname=pc4.1&qt=s&da_src=searchBox.button&c=218&src=0&wd2=&pn=0&sug=0&l=11&from=webmap&biz_forward={%22scaler%22:1,%22styles%22:%22pl%22}&sug_forward=&tn=B_NORMAL_MAP&nn=0&wd=" + name.decode("gbk").encode("utf-8")
-    print ("url : %s" % (url) )
+    #print ("url : %s" % (url) )
     respon = getHttp( url )
     retjson = json.loads(respon)
     try:
@@ -177,7 +183,7 @@ def coordinateConvert( coordinateList , froms = 6, to = 5):
     url = "http://api.map.baidu.com/geoconv/v1/?from=%d&to=%d&ak=%s&coords=%s" % (froms, to, ak, coords)
     
     respon = getHttp(url)
-    print (respon)
+    #print (respon)
     retjson = json.loads(respon)
     r = []
     if int(retjson['status'] == 0):
@@ -209,7 +215,7 @@ def name2latlng(name):
     ret = ret.decode('utf-8')
     retjson = json.loads(ret)
     if retjson['status'] != 0:
-        print (retjson)
+        #print (retjson)
         return None
     else:
         return { "lat" : float(retjson['result']['location']['lat']),
@@ -355,21 +361,53 @@ def updates():
 
     cursor = connect.cursor()
 
-    cursor.execute("SELECT stationuid, lng, lat from station")
+    cursor.execute("SELECT stationuid, lng, lat, lngmeter, latmeter from station")
     values = cursor.fetchall()
+    try:
+        for row in values:
+            uid = row[0]
+            lng = row[1]
+            lat = row[2]
+            if float(row[3]) < 1e-9 and float(row[4]) < 1e-9:
+                print ("lng = %s, lat = %s" % (lng, lat) )
+                coordinate = coordinateConvert( [lng, lat], froms = 5, to = 6 )
+                print ("coordinate[0] = %s, coordinate[1] = %s" % ( str(coordinate[0]), str(coordinate[1] )))
+                cursor.execute("UPDATE station SET lngmeter = (:lng), latmeter = (:lat) where stationuid = (:uid)", {
+                    "uid" : uid,
+                    "lng" : coordinate[0],
+                    "lat" : coordinate[1]
+                })
+    except Exception as e:
+        print ( e )
 
-    for row in values:
-        uid = row[0]
-        lng = row[1]
-        lat = row[2]
+    connect.commit()
+    cursor.close()
+    connect.close()
 
-        coordinate = coordinateConvert( [lng, lat] )
+def updatesPOI():
+    connect = sqlite3.connect(DATABASEPATH)
 
-        cursor.execute("UPDATE station SET lng = (:lng), lat = (:lat) where stationuid = (:uid)", {
-            "uid" : uid,
-            "lng" : coordinate[0],
-            "lat" : coordinate[1]
-        })
+    cursor = connect.cursor()
+
+    cursor.execute("SELECT uid, lng, lat, lngmeter, latmeter from poi")
+    values = cursor.fetchall()
+    count = 1
+    try:
+        for row in values:
+            uid = row[0]
+            lng = row[1]
+            lat = row[2]
+            if float(row[3]) < 1e-9 and float(row[4]) < 1e-9:
+                print ("lng = %s, lat = %s" % (lng, lat) )
+                coordinate = coordinateConvert( [lng, lat], froms = 5, to = 6 )
+                print ("coordinate[0] = %s, coordinate[1] = %s" % ( str(coordinate[0]), str(coordinate[1] )))
+                cursor.execute("UPDATE poi SET lngmeter = (:lng), latmeter = (:lat) where uid = (:uid)", {
+                    "uid" : uid,
+                    "lng" : coordinate[0],
+                    "lat" : coordinate[1]
+                })
+    except:
+        pass
 
     connect.commit()
     cursor.close()
@@ -401,5 +439,7 @@ if __name__ == "__main__":
     #            data = getBusLine(i)
     #            #print ( data )
     #            insertBusLine(data)
-    #checkSQL()
-    #updates()
+    #checkSQL(
+    updates()
+    updatesPOI()
+    #pass
