@@ -417,29 +417,6 @@ def Crawler(location):
     pass
 
 if __name__ == "__main__":
-    #InitDatabase()
-    #name2latlng("武汉大学")
-    #r = nearBySearchCity("武汉大学", pagesize = 200)
-    #insertPOI(r)
-    #local = "chengshi"
 
-    #Crawler(local)
-    #with open("./project/buslines.txt", "r") as f:
-    #    content = f.read()
-    #    content = content
-    #    items = content.split(" ")
-    #    print (content)
-    #    print (len(items))
-    #    for item in items:
-    #        
-    #        uids = getBusUid(item)
-    #        print ("item name : %s-%d" % (item, len(uids)))
-    #        print (uids)
-    #        for i in uids:
-    #            data = getBusLine(i)
-    #            #print ( data )
-    #            insertBusLine(data)
-    #checkSQL(
     updates()
     updatesPOI()
-    #pass

@@ -21,4 +21,7 @@ README
     convert2shape.py 将数据转换成ArcGIS支持的SHP文件格式的接口封装
     temp.db 使用sqlite3构建的数据库，爬取的数据均存在此文件之中。具体表结构在Crawler.py之中
     buslines.txt 武汉市公交线路名称
+    test.shp 小区的shp文件
+    point.shp 公交站点的shp文件
+    polyline.shp 公交线路的shp文件
 

@@ -40,7 +40,7 @@ def importPolygon():
 
 
 def importPoint():
-    convert2shape.createFeature("./project/point.shp", ["uid", "name", "lng", "lat"], ["TEXT", "TEXT", "DOUBLE", "DOUBLE"])
+    convert2shape.createFeature("./project/point.shp", ["uid", "name", "lng", "lat"], ["TEXT", "TEXT", "DOUBLE", "DOUBLE"], featureTypes= "POINT")
 
     connect = sqlite3.connect(DATABASEPATH)
 
@@ -55,18 +55,19 @@ def importPoint():
         lng = float(row[2])
         lat = float(row[3])
         point = convert2shape.constructPoint(lng, lat)
-        convert2shape.insertRow("./project/point.shp", ("uid", "name", "lng", "lat", "SHAPE@"), [uid, name, lng, lat, point])
+
+        convert2shape.insertRow("./project/point.shp", ("uid", "name", "lng", "lat", "SHAPE@XY"), [uid, name, lng, lat, point])
 
 def importPolyline():
-    path = "./porject/polyline.shp"
-    convert2shape.createFeature(path, ["uid", "name"], ["TEXT", "TEXT"])
+    path = "./project/polyline.shp"
+    convert2shape.createFeature(path, ["uid", "name"], ["TEXT", "TEXT"], featureTypes= "POLYLINE")
 
     connect = sqlite3.connect(DATABASEPATH)
 
     cursor = connect.cursor()
     sql = "SELECT busuid, name from busline"
     cursor.execute(sql)
-    if cursor.rowcount != 0:
+    if 1:
         values = cursor.fetchall()
 
         for row in values:
@@ -74,15 +75,15 @@ def importPolyline():
             busname = row[1]
 
             points = []
-            sql = "SELECT stationuid, buslineorder from buslineorder where busuid = (:uid) order by buslineorder"
+            sql = "SELECT stationuid, buslineorder from linestation where busuid = (:uid) order by buslineorder"
             cursor.execute(sql,{"uid" : busuid})
-            assert(cursor.rowcount != 0)
+            
             linestations = cursor.fetchall()
 
             for singlepoint in linestations:
                 sql = "SELECT lng, lat from station where stationuid = (:uid)"
                 cursor.execute(sql, {"uid" : singlepoint[0]})
-                assert(cursor.rowcount == 1)
+                
                 station = cursor.fetchall()
                 point = station[0]
                 points.append( (point[0], point[1]) )
@@ -260,19 +261,30 @@ def accessibility():
 
 if __name__ == "__main__" :
     #Crawler.InitDatabase()
-    #for i in range(10):
-    #    r = Crawler.nearBySearchCity("武汉大学", pagesize = 100, pagenum = i)
-    #    Crawler.insertPOI(r)
+    Location = "武汉市"
+    for i in range(10):
+        r = Crawler.nearBySearchCity(Location, pagesize = 100, pagenum = i)
+        Crawler.insertPOI(r)
     
-    #importPolygon()
-    #importPoint()
-
-    #uids = getBusUid("72路")
-    #for i in uids:
-    #    data = getBusLine(i)
-    #    insertBusLine(data)
 
     
-    #checkSQL()
-    #print ( PageRank() )
+    with open("./buslines.txt", "r") as f:
+        content = f.read()
+        content = content
+        items = content.split(" ")
+        print (content)
+        print (len(items))
+        for item in items:
+            
+            uids = Crawler.getBusUid(item)
+            print ("item name : %s-%d" % (item, len(uids)))
+            print (uids)
+            for i in uids:
+                data = Crawler.getBusLine(i)
+                #print ( data )
+                Crawler.insertBusLine(data)
     accessibility()
+
+    importPolygon()
+    importPolyline()
+    importPoint()
