@@ -2,7 +2,7 @@ README
 
 
 ***
-|Autor|ays|
+|Author|ays|
 |---|---|
 |E-mail|bhza8987510@gmail.com
 ***
